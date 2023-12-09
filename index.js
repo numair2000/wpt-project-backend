@@ -38,7 +38,7 @@
 
 
 const app = express();
-const port = 3302;
+const port = 3385;
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -92,20 +92,19 @@ app.post('/register', (req, res) => {
   res.status(201).json({ message: 'User registered successfully.', registeredUsers: newUser });
 });
 
-app.post('/cancelRegistration', (req, res) => {
+app.post('/register', (req, res) => {
     const { name } = req.body;
   
     // Find the user by name and remove them from the registeredUsers array
-    const index = registeredUsers.findIndex(user => user.name === name);
+    const userIndex = registeredUsers.findIndex(user => user.name === name);
   
-    if (index !== -1) {
-      registeredUsers.splice(index, 1);
-      res.json({ message: 'Registration canceled successfully.' });
+    if (userIndex !== -1) {
+      const canceledUser = registeredUsers.splice(userIndex, 1)[0]; // Remove the user and get the removed user
+      res.json({ message: 'Registration canceled successfully.', canceledUser });
     } else {
       res.status(404).json({ message: 'User not found.' });
     }
   });
-  
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
