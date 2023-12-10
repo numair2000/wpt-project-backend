@@ -1,111 +1,86 @@
- import express from 'express';
- import bodyParser from 'body-parser';
- import cors from 'cors';
-
-// const app = express();
-
-// app.use(express.json());
-
-// app.get("/",(request,response)=>{
-//         response.send("Hello welcome to base url")
-// });
-
-// app.get("/login",(request,response)=>{
-//     response.send("Hello welcome to login")
-// });
-
-// app.get("/sum/:a/:b",(request,response)=>{
-//     var x=parseInt(request.params.a);
-//     var y=parseInt(request.params.b);
-//     var z=x+y;
-//     response.send({sum:z});
-// });
-
-// app.post("/add",(request,response)=>{
-//     var a=request.body.x;
-//     var b=request.body.y;
-//     var c =a+b;
-//     response.send({sum:c});
-// });
-
-
-
-// app.listen(5490,()=>{
-//     console.log("Server has Started")
-// });
-
-
-
+import  express  from 'express';
+import cors from 'cors'
+import bodyParser from 'body-parser';
+import mongoose from 'mongoose';
 
 const app = express();
-const port = 3385;
+const port = 3302;
 
-app.use(bodyParser.json());
 app.use(cors());
+app.use(bodyParser.json());
 
-const registeredUsers = [];
-
-app.post('/register', (req, res) => {
-  const {
-    name,
-    age,
-    email,
-    pastInjuries,
-    experience,
-    height,
-    weight,
-    foodAllergies,
-    medicalProblems,
-    goals,
-  } = req.body;
-
-  
-
-  // Basic validation
-  if (!name ) {
-    return res.status(400).json({ message: 'Please provide all required fields.' });
-  }
-
-//   if (password !== confirmPassword) {
-//     return res.status(400).json({ message: 'Passwords do not match.' });
-//   }
-
-  // Check if the email is already registered
-//   if (users.some(user => user.email === email)) {
-//     return res.status(400).json({ message: 'Email is already registered.' });
-//   }
-
-  const newUser = {
-    name,
-    age,
-    email,
-    pastInjuries,
-    experience,
-    height,
-    weight,
-    foodAllergies,
-    medicalProblems,
-    goals,
-  };
-  registeredUsers.push(newUser);
-
-  res.status(201).json({ message: 'User registered successfully.', registeredUsers: newUser });
+mongoose.connect('mongodb://localhost:27017/martialarts', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
 
-app.post('/register', (req, res) => {
-    const { name } = req.body;
-  
-    // Find the user by name and remove them from the registeredUsers array
-    const userIndex = registeredUsers.findIndex(user => user.name === name);
-  
-    if (userIndex !== -1) {
-      const canceledUser = registeredUsers.splice(userIndex, 1)[0]; // Remove the user and get the removed user
-      res.json({ message: 'Registration canceled successfully.', canceledUser });
+const studentSchema = new mongoose.Schema({
+  name: String,
+  age: String,
+  email: String,
+  pastInjuries: String,
+  experience: String,
+  height: String,
+  weight: String,
+  foodAllergies: String,
+  medicalProblems: String,
+  goals: [String],
+});
+
+const Student = mongoose.model('Student', studentSchema);
+
+app.post('/register', async (req, res) => {
+  const newStudentData = req.body;
+
+  try {
+    const newStudent = await Student.create(newStudentData);
+    console.log('New registration:', newStudent);
+    res.json({ message: 'Registration successful', user: newStudent });
+  } catch (error) {
+    console.error('Error registering student:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+app.post('/cancelRegistration', async (req, res) => {
+  const { name } = req.body;
+
+  try {
+    const canceledStudent = await Student.findOneAndDelete({ name });
+    if (canceledStudent) {
+      console.log('Registration canceled:', canceledStudent);
+      res.json({ message: 'Registration canceled successfully', user: canceledStudent });
     } else {
-      res.status(404).json({ message: 'User not found.' });
+      console.log('Student not found for cancellation:', name);
+      res.status(404).json({ message: 'Student not found' });
     }
-  });
+  } catch (error) {
+    console.error('Error canceling registration:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+app.get('/registeredStudents', async (req, res) => {
+  try {
+    const students = await Student.find();
+    console.log('Registered students:', students);
+    res.json({ students });
+  } catch (error) {
+    console.error('Error fetching registered students:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+app.get('/registeredCount', async (req, res) => {
+  try {
+    const count = await Student.countDocuments();
+    res.json({ count });
+  } catch (error) {
+    console.error('Error fetching registered count:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`Server is running on port ${port}`);
 });
